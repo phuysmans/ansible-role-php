@@ -1,9 +1,7 @@
 ---
-# defaults file for roles/neo4j
+# defaults file for roles/php
 
-neo4j_flavor:               neo4j-community
-neo4j_version:              2.3.1
-neo4j_install_dir:          /opt/neo4j
-neo4j_auth_enabled:         'true'
-neo4j_java_mem_init:        512
-neo4j_java_mem_max:         512
+php_version:            5.4.20
+php_install_tmp:        /tmp
+php_conf_dir:           /etc/php5/conf.d
+php_modules:            []

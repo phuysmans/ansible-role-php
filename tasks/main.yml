@@ -1,4 +1,69 @@
 ---
-# tasks file for roles/neo4j
+# tasks file for roles/php
 
-- include: install.yml
+# DEFUNCT FOR NOW ... 5.4.20 is only available till opensuse:bottle (13.1) ...
+# - include: install.yml
+
+- name: php | install
+  zypper: name={{ item }} state=present
+  with_items:
+      - php5
+      - php5-json
+      - php5-bz2
+      - php5-curl
+      - php5-ctype
+      - php5-enchant
+      - php5-fileinfo
+      - php5-ftp
+      - php5-gd
+      - php5-gettext
+      - php5-mbstring
+      - php5-mcrypt
+      - php5-mysql
+      - php5-openssl
+      - php5-firebird
+      - php5-pdo
+      - php5-soap
+      - php5-tidy
+      - php5-xsl
+      - php5-zip
+      - php5-zlib
+      - php5-phar
+      - php5-intl
+      - php5-pear
+      - php5-devel
+  notify:
+    - apache.restart
+
+- name: get installed version
+  command: >
+    php -v
+  register: php_installed_version
+
+- name: print version
+  debug: >
+    msg="Installed PHP version: {{ php_installed_version.stdout_lines[0] }}"
+
+- name: install pecl packages
+  pear: >
+    name="{{ item }}"
+    state=present
+  with_items:
+      - pecl/mongo
+      - pecl/redis-2.2.7
+      
+- name: install pecl packages ini files
+  template: >
+    src="templates/{{ item }}.ini.j2"
+    dest="{{ php_conf_dir }}/{{ item }}.ini"
+  with_items:
+      - mongo
+      - redis
+      
+- name: install additional modules
+  zypper: >
+    name="{{ item }}" 
+    state=present
+  with_items: "{{ php_modules }}"
+  notify:
+    - apache.restart

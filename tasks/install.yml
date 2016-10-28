@@ -1,88 +1,53 @@
 ---
 
-- name: ensure install path exists
-  file: >
-    path={{ neo4j_install_dir }}
-    state=directory
+- name: installed version
+  command: >
+    php -v
+  register: php_installed_version
+  ignore_errors: yes
+
+- name: print version
+  debug: >
+    msg="Available PHP version: {{ php_installed_version.stdout_lines[0] }} -- Wanted: {{ php_version }}"
+  ignore_errors: yes
+
+- name: download tarball
+  get_url: >
+    url="http://museum.php.net/php5/php-{{ php_version }}.tar.gz"
+    dest="{{ php_install_tmp }}/php-{{ php_version }}.tar.gz"
+    validate_certs=no
+  when: 
     
-- name: create neo4j user
-  user: >
-    name=neo4j
-    system=yes
-    state=present
-    createhome=no
-    
-- name: download and unarchive package
+- name: unarchive package
   unarchive: >
-    src=http://dist.neo4j.org/{{ neo4j_flavor }}-{{ neo4j_version }}-unix.tar.gz
-    dest={{ neo4j_install_dir }}
-    creates={{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}
+    src="{{ php_install_tmp }}/php-{{ php_version }}.tar.gz"
+    dest="{{ php_install_tmp }}"
+    creates="{{ php_install_tmp }}/php-{{ php_version }}"
     copy=no
-    owner=neo4j
     
-- name: allow remote access to webinterface
-  lineinfile: >
-    dest={{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-server.properties
-    create=yes
-    state=present
-    line="org.neo4j.server.webserver.address=0.0.0.0"
-    regexp="^org.neo4j.server.webserver.address"
+- name: configure
+  command: >
+    ./configure --prefix=/opt
+    chdir="{{ php_install_tmp }}/php-{{ php_version }}"
+  
+- name: make
+  command: >
+    make
+    chdir="{{ php_install_tmp }}/php-{{ php_version }}"
 
-- name: disable authentication if needed
-  lineinfile: >
-    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-server.properties"
-    create=yes
-    state=present
-    line="dbms.security.auth_enabled={{ neo4j_auth_enabled }}"
-    regexp="^dbms.security.auth_enabled"
-  notify: neo4j.restart
+- name: make install
+  command: >
+    make install
+    chdir="{{ php_install_tmp }}/php-{{ php_version }}"
 
-- name: remove java memory comments
-  lineinfile: >
-    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-wrapper.conf"
-    create=yes
-    state=absent
-    regexp="^{{ item.key }}="
-  with_items:
-      - { 
-        key: "wrapper.java.initmemory"
-      }
-      - {
-        key: "wrapper.java.maxmemory"
-      }
-  notify: neo4j.restart
+- name: compiled version
+  command: >
+    php -v
+  register: php_compiled_version
 
-- name: set java memory
-  lineinfile: >
-    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-wrapper.conf"
-    create=yes
-    state=present
-    line="{{ item.key }}={{ item.value }}"
-    regexp="^#{{ item.key }}="
-  with_items:
-      - { 
-        key: "wrapper.java.initmemory",
-        value: "{{ neo4j_java_mem_init }}"
-      }
-      - {
-        key: "wrapper.java.maxmemory",
-        value: "{{ neo4j_java_mem_max }}"
-      }
-  notify: neo4j.restart
+- name: print version
+  debug: >
+    msg="Ansible compiled PHP version: {{ php_compiled_version.stdout_lines[0] }} -- Wanted: {{ php_version }}"
 
-- name: install service file
-  template: >
-    src=templates/neo4j.service.j2
-    dest=/usr/lib/systemd/system/neo4j.service
-    owner=root
-    group=root
-    mode=0644
-  notify:
-      - reload-systemd
-    
-- name: enable and start service
-  service: >
-    name=neo4j
-    state=running
-    enabled=yes
-    
+
+

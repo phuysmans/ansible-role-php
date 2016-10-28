@@ -1,10 +1,7 @@
 ---
-# handlers file for roles/neo4j
+# handlers file for roles/php
 
-- name: neo4j.restart
-  service: >
-    name=neo4j
-    state=restarted
-
-- name: reload-systemd
-  command: systemctl daemon-reload
+#- name: apache.restart
+#  service: > 
+#    name=apache2
+#    state=restarted
