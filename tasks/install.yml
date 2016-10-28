@@ -1,0 +1,88 @@
+---
+
+- name: ensure install path exists
+  file: >
+    path={{ neo4j_install_dir }}
+    state=directory
+    
+- name: create neo4j user
+  user: >
+    name=neo4j
+    system=yes
+    state=present
+    createhome=no
+    
+- name: download and unarchive package
+  unarchive: >
+    src=http://dist.neo4j.org/{{ neo4j_flavor }}-{{ neo4j_version }}-unix.tar.gz
+    dest={{ neo4j_install_dir }}
+    creates={{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}
+    copy=no
+    owner=neo4j
+    
+- name: allow remote access to webinterface
+  lineinfile: >
+    dest={{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-server.properties
+    create=yes
+    state=present
+    line="org.neo4j.server.webserver.address=0.0.0.0"
+    regexp="^org.neo4j.server.webserver.address"
+
+- name: disable authentication if needed
+  lineinfile: >
+    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-server.properties"
+    create=yes
+    state=present
+    line="dbms.security.auth_enabled={{ neo4j_auth_enabled }}"
+    regexp="^dbms.security.auth_enabled"
+  notify: neo4j.restart
+
+- name: remove java memory comments
+  lineinfile: >
+    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-wrapper.conf"
+    create=yes
+    state=absent
+    regexp="^{{ item.key }}="
+  with_items:
+      - { 
+        key: "wrapper.java.initmemory"
+      }
+      - {
+        key: "wrapper.java.maxmemory"
+      }
+  notify: neo4j.restart
+
+- name: set java memory
+  lineinfile: >
+    dest="{{ neo4j_install_dir }}/{{ neo4j_flavor }}-{{ neo4j_version }}/conf/neo4j-wrapper.conf"
+    create=yes
+    state=present
+    line="{{ item.key }}={{ item.value }}"
+    regexp="^#{{ item.key }}="
+  with_items:
+      - { 
+        key: "wrapper.java.initmemory",
+        value: "{{ neo4j_java_mem_init }}"
+      }
+      - {
+        key: "wrapper.java.maxmemory",
+        value: "{{ neo4j_java_mem_max }}"
+      }
+  notify: neo4j.restart
+
+- name: install service file
+  template: >
+    src=templates/neo4j.service.j2
+    dest=/usr/lib/systemd/system/neo4j.service
+    owner=root
+    group=root
+    mode=0644
+  notify:
+      - reload-systemd
+    
+- name: enable and start service
+  service: >
+    name=neo4j
+    state=running
+    enabled=yes
+    

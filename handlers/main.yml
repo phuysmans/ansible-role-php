@@ -1,0 +1,10 @@
+---
+# handlers file for roles/neo4j
+
+- name: neo4j.restart
+  service: >
+    name=neo4j
+    state=restarted
+
+- name: reload-systemd
+  command: systemctl daemon-reload

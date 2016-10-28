@@ -1,0 +1,9 @@
+---
+# defaults file for roles/neo4j
+
+neo4j_flavor:               neo4j-community
+neo4j_version:              2.3.1
+neo4j_install_dir:          /opt/neo4j
+neo4j_auth_enabled:         'true'
+neo4j_java_mem_init:        512
+neo4j_java_mem_max:         512

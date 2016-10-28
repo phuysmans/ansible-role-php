@@ -1,0 +1,4 @@
+---
+# tasks file for roles/neo4j
+
+- include: install.yml
